@@ -35,14 +35,14 @@ index = pc.Index("fashion-images")
 
 # Create embeddings for fashion and non-fashion concepts with more specific prompts
 FASHION_CONCEPT = "a photo of a clothing item"
-NON_FASHION_CONCEPT = "a photo of a non-clothing item like an animal or object"
+NON_FASHION_CONCEPT = "a photo of something else"
 CONCEPT_INPUTS = clip.tokenize([FASHION_CONCEPT, NON_FASHION_CONCEPT]).to(device)
 with torch.no_grad():
     CONCEPT_EMBEDDINGS = model.encode_text(CONCEPT_INPUTS)
     CONCEPT_EMBEDDINGS /= CONCEPT_EMBEDDINGS.norm(dim=-1, keepdim=True)
 
 # Minimum fashion similarity threshold
-MIN_FASHION_SIMILARITY = 0.3
+#MIN_FASHION_SIMILARITY = 0.3
 
 # Function to extract image features
 def extract_features(image_data):
@@ -67,13 +67,11 @@ def is_relevant_to_fashion(query_vector, query_type="unknown"):
         query_tensor = torch.tensor(query_vector).to(device).unsqueeze(0)
         query_tensor /= query_tensor.norm(dim=-1, keepdim=True)  # Ensure normalization
         similarities = (query_tensor @ CONCEPT_EMBEDDINGS.T).cpu().numpy().flatten()
-        fashion_similarity = similarities[0]  # Similarity to "a photo of a clothing item"
-        non_fashion_similarity = similarities[1]  # Similarity to "a photo of a non-clothing item like an animal or object"
-        logger.info(f"Query type: {query_type}, Fashion similarity: {fashion_similarity:.4f}, Non-fashion similarity: {non_fashion_similarity:.4f}")
-        # Query is relevant if it's more similar to fashion than non-fashion AND has a minimum fashion similarity
-        is_fashion = (fashion_similarity > non_fashion_similarity) and (fashion_similarity >= MIN_FASHION_SIMILARITY)
-        logger.info(f"Query type: {query_type}, Is fashion: {is_fashion}")
-        return is_fashion
+        fashion_similarity = similarities[0]  # Similarity to "a photo of clothing or fashion item"
+        non_fashion_similarity = similarities[1]  # Similarity to "a photo of something else"
+        logger.info(f"Query type: {query_type}, Fashion similarity: {fashion_similarity:.4f}, Non-fashion similarity: {non_fashion_similarity:.4f}, Is fashion: {fashion_similarity > non_fashion_similarity}")
+        # Query is relevant if it's more similar to fashion than non-fashion
+        return fashion_similarity > non_fashion_similarity
 
 # Route for homepage
 @app.route("/", methods=["GET", "POST"])
